@@ -1,0 +1,18 @@
+{
+  "effective": "2026-09-02",
+  "checked": "2026-10-01",
+  "prices": {
+    "inland":  { "p95": 26.92, "p93": 26.76, "d50": 30.05, "d500": 29.11 },
+    "coastal": { "p95": 26.05, "p93": 25.97, "d50": 28.79, "d500": 28.24 }
+  },
+  "forecast": {
+    "effective": "2026-10-07",
+    "status": "forecast",
+    "delta": { "p95": 3.16, "p93": 3.16, "d50": 3.13, "d500": 2.73 }
+  },
+  "history": [
+    { "month": "2026-08", "inland": { "p95": 25.58, "d50": 26.90 }, "coastal": { "p95": 24.71, "d50": 25.64 } },
+    { "month": "2026-09", "inland": { "p95": 26.92, "d50": 30.05 }, "coastal": { "p95": 26.05, "d50": 28.79 } }
+  ],
+  "source": "Department of Mineral and Petroleum Resources (DMPR) official prices, as reported by BusinessTech and CarMag. October forecast from CarMag, based on Central Energy Fund data."
+}
