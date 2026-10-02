@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Padkos Road Trip Planner</title>
+<meta name="description" content="Plan a South African road trip: route with overnight stops, places to stay, sights along the way and a full budget priced with official fuel prices.">
+<meta name="theme-color" content="#0f5b3a">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:title" content="Padkos Road Trip Planner">
+<meta property="og:description" content="Route, overnight stops and a full budget for your next South African road trip.">
+<style>body{margin:0}</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: road-sign header, planner controls beside a live map, then day-by-day route beside the budget and fuel monitor, then the places directory. */
+:root{
+  --bg:#edf1ec; --surface:#ffffff; --ink:#16231c; --muted:#56675d; --line:#d2dbd3;
+  --sign:#0f5b3a; --sign-ink:#ffffff; --shield:#f2b705; --shield-ink:#1a1a10;
+  --land:#dde7dc; --land-edge:#9fb3a3; --sea:#e3ecef; --route:#e29d00; --dot:#0f5b3a;
+  --good:#1f7a4a; --warn:#b4540a; --bad:#b3261e; --soft:#e6eee7; --link:#0f5b3a;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1512; --surface:#15201b; --ink:#e4ece6; --muted:#92a598; --line:#283a31;
+  --sign:#0f4a31; --sign-ink:#f1f6f2; --shield:#f2c230; --shield-ink:#1a1a10;
+  --land:#1b2b23; --land-edge:#3d5848; --sea:#101b17; --route:#f2c230; --dot:#5fc38f;
+  --good:#5fc38f; --warn:#f0a35a; --bad:#ff8a80; --soft:#1c2a23; --link:#7fd6a6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1512; --surface:#15201b; --ink:#e4ece6; --muted:#92a598; --line:#283a31;
+  --sign:#0f4a31; --sign-ink:#f1f6f2; --shield:#f2c230; --shield-ink:#1a1a10;
+  --land:#1b2b23; --land-edge:#3d5848; --sea:#101b17; --route:#f2c230; --dot:#5fc38f;
+  --good:#5fc38f; --warn:#f0a35a; --bad:#ff8a80; --soft:#1c2a23; --link:#7fd6a6; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+h2{font-size:1.75rem;font-weight:700;letter-spacing:.01em}
+h3{font-size:1.25rem;font-weight:600}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+a{color:var(--link)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--shield);outline-offset:2px}
+
+.sign{background:var(--sign);color:var(--sign-ink);border-radius:10px;padding:20px 22px;border:3px solid var(--sign-ink);box-shadow:0 0 0 3px var(--sign);display:grid;gap:12px;margin:3px}
+.sign h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700;letter-spacing:.01em}
+.sign p{margin:0;max-width:66ch;opacity:.92}
+.shields{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.shield{display:inline-flex;align-items:center;justify-content:center;min-width:2.4em;padding:1px 7px;background:var(--shield);color:var(--shield-ink);font-family:var(--f-display);font-weight:700;font-size:1rem;border-radius:4px;border:2px solid var(--shield-ink);line-height:1.2}
+.sign .arrow{font-family:var(--f-display);font-size:1.15rem}
+
+.planner{display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:20px;margin-top:24px}
+@media (max-width:860px){.planner{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;align-content:start;min-width:0}
+.field{display:grid;gap:4px}
+.field select,.field input,.search{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{background:var(--bg);border:0;padding:8px 4px;cursor:pointer;font-weight:600;font-size:.88rem}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--sign);color:var(--sign-ink)}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.check{display:flex;gap:8px;align-items:center;font-size:.95rem}
+.check input{width:18px;height:18px;accent-color:var(--sign)}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:12px;margin:0;display:grid;gap:12px;min-width:0}
+legend{font-family:var(--f-display);font-weight:700;font-size:1.1rem;padding:0 6px}
+.fuelstat{font-size:.85rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.mapcard{background:var(--sea);border:1px solid var(--line);border-radius:10px;padding:8px;min-width:0;display:grid;gap:8px;align-content:start}
+.mapcard svg{width:100%;height:auto;display:block}
+.land{fill:var(--land);stroke:var(--land-edge);stroke-width:1.2;fill-rule:evenodd}
+.road{stroke:var(--land-edge);stroke-width:1;fill:none;stroke-dasharray:3 3;opacity:.8}
+.route{stroke:var(--route);stroke-width:4.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.route-casing{stroke:var(--sign);stroke-width:8;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.ddot{fill:var(--surface);stroke:var(--dot);stroke-width:1.6;cursor:pointer}
+.ddot:hover{fill:var(--dot)}
+.pin-start{fill:var(--sign);stroke:var(--sign-ink);stroke-width:2}
+.pin-end{fill:var(--route);stroke:var(--sign);stroke-width:2.5}
+.pin-night{fill:var(--surface);stroke:var(--route);stroke-width:3}
+.maplabel{font-family:var(--f-display);font-size:13px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted);padding:0 6px 4px}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:12px;height:12px;border-radius:50%;display:inline-block}
+
+.summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:20px}
+.summary>div{background:var(--surface);padding:14px 16px;display:grid;gap:2px;min-width:0;align-content:start}
+.summary .v{font-family:var(--f-display);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.summary .s{font-size:.82rem;color:var(--muted)}
+@media (max-width:860px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary>div:last-child{grid-column:1/-1}}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:700;width:max-content}
+.pill.ok{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.over{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.pill.wait{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+
+.twocol{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;margin-top:28px;align-items:start}
+@media (max-width:860px){.twocol{grid-template-columns:minmax(0,1fr)}}
+.stackcol{display:grid;gap:28px;min-width:0}
+.sect-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+
+.day{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;padding-bottom:18px;position:relative}
+.day::before{content:"";position:absolute;left:27px;top:44px;bottom:0;width:3px;background:repeating-linear-gradient(var(--line) 0 8px,transparent 8px 14px)}
+.day:last-child::before{display:none}
+.daynum{width:56px;height:44px;border-radius:6px;background:var(--sign);color:var(--sign-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;line-height:1;text-align:center;font-size:.8rem}
+.daynum b{font-size:1.25rem;display:block}
+.day.stay .daynum{background:var(--shield);color:var(--shield-ink)}
+.daybody{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px;min-width:0}
+.daytitle{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.daymeta{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.stops{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.stops li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.93rem}
+.stops .shield{font-size:.78rem;min-width:2.8em}
+.km{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font-size:.8rem;padding:2px 8px;border-radius:5px;background:var(--soft);border:1px solid var(--line)}
+.chip.sleep{border-color:var(--route)}
+.chip.see{border-color:var(--dot)}
+button.chip{cursor:pointer}
+.stays{font-size:.85rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stays a{font-weight:600}
+
+.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;min-width:0}
+.stack{display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--soft)}
+.stack i{display:block;height:100%}
+.btable{width:100%;border-collapse:collapse;font-size:.93rem}
+.btable td,.btable th{padding:7px 0;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.btable td:last-child,.btable th:last-child{text-align:right;padding-left:10px}
+.btable .r{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.btable .why{display:block;font-size:.8rem;color:var(--muted)}
+.btable tr.total td{border-bottom:0;font-weight:700;font-size:1.05rem;padding-top:10px}
+.btable th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.ftable td,.ftable th{text-align:right;padding-left:8px}
+.ftable td:first-child,.ftable th:first-child{text-align:left;padding-left:0}
+.up{color:var(--bad)} .down{color:var(--good)}
+.key{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.chart svg{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .ax{font-family:var(--f-mono);font-size:10px;fill:var(--muted)}
+.chart .lp{stroke:var(--route);stroke-width:2.5;fill:none}
+.chart .ld{stroke:var(--dot);stroke-width:2.5;fill:none}
+.chart .fc{stroke-dasharray:4 4}
+.chart .vp{fill:var(--route)} .chart .vd{fill:var(--dot)}
+.chart .vl{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink)}
+
+.places-head{margin-top:36px;display:grid;gap:12px}
+.dirtools{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:10px}
+@media (max-width:600px){.dirtools{grid-template-columns:minmax(0,1fr)}}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters button{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:.88rem;font-weight:600}
+.filters button[aria-pressed="true"]{background:var(--sign);color:var(--sign-ink);border-color:var(--sign)}
+.filters button[aria-pressed="true"] .km{color:inherit;opacity:.85}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.place{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:8px;grid-template-rows:auto auto 1fr auto auto;min-width:0}
+.place.sel{border-color:var(--route);box-shadow:0 0 0 2px var(--route)}
+.place p{margin:0;font-size:.93rem}
+.place .meta{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.btn{justify-self:start;background:transparent;border:1.5px solid var(--sign);color:var(--ink);border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:.9rem}
+.btn:hover{background:var(--sign);color:var(--sign-ink)}
+.place.sel .btn{background:var(--sign);color:var(--sign-ink)}
+.more{justify-self:center;margin-top:14px}
+.foot{margin-top:32px;font-size:.82rem;color:var(--muted);max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.route{stroke-dasharray:2400;animation:draw 1.1s ease-out}@keyframes draw{from{stroke-dashoffset:2400}to{stroke-dashoffset:0}}}
+</style>
+
+<style>
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.tbtn{background:transparent;color:var(--sign-ink);border:1.5px solid var(--sign-ink);border-radius:6px;padding:6px 12px;font-weight:600;font-size:.9rem;cursor:pointer;min-height:40px}
+.tbtn:hover{background:var(--sign-ink);color:var(--sign)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.seg button,.filters button,.btn,.chip{min-height:40px}
+@media print{.planner form,.places-head,.toolbar,.mapcard .legend{display:none!important}.planner{grid-template-columns:1fr}body{background:#fff}}
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">This planner needs JavaScript turned on.</p></noscript>
+<div class="wrap">
+  <header class="sign">
+    <div class="shields" id="hdrShields"></div>
+    <h1>Padkos Road Trip Planner</h1>
+    <p>Start from your town and pick from over 100 of South Africa's best places: game parks, waterfalls, dams, beaches, resorts and more. You get the route with overnight stops, places to stay, sights along the way and a budget priced with this month's official petrol and diesel prices.</p>
+    <div class="toolbar">
+      <button type="button" class="tbtn" id="shareBtn">Share this trip</button>
+      <button type="button" class="tbtn" id="printBtn">Print / save PDF</button>
+      <button type="button" class="tbtn" id="resetBtn">Start over</button>
+    </div>
+  </header>
+
+  <section class="planner">
+    <form class="panel" id="form" onsubmit="return false">
+      <div class="field">
+        <label class="label" for="from">Your current location</label>
+        <select id="from"></select>
+        <p class="hint">Choose the nearest town or city to you.</p>
+      </div>
+      <div class="field">
+        <label class="label" for="to">Final destination</label>
+        <select id="to"></select>
+      </div>
+      <div class="row2">
+        <div class="field"><label class="label" for="travellers">Travellers</label><input id="travellers" type="number" min="1" max="12" value="2"></div>
+        <div class="field"><label class="label" for="nights">Nights there</label><input id="nights" type="number" min="0" max="30" value="3"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="acc">Where you'll sleep</label>
+        <select id="acc"></select>
+        <p class="hint" id="accHint"></p>
+      </div>
+      <div class="field">
+        <span class="label" id="foodLbl">Eating out</span>
+        <div class="seg" role="group" aria-labelledby="foodLbl" id="food">
+          <button type="button" data-v="budget">Budget</button>
+          <button type="button" data-v="comfort">Comfort</button>
+          <button type="button" data-v="luxury">Luxury</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="target">My budget (R)</label>
+        <input id="target" type="number" min="0" step="500" value="30000">
+      </div>
+      <label class="check"><input type="checkbox" id="ret" checked> Include the drive home</label>
+      <label class="check"><input type="checkbox" id="resident" checked> SA resident (lower park fees)</label>
+
+      <fieldset>
+        <legend>Car &amp; fuel</legend>
+        <div class="row2">
+          <div class="field"><label class="label" for="grade">Fuel</label>
+            <select id="grade"><option value="p95">Petrol 95</option><option value="p93">Petrol 93</option><option value="d50">Diesel 50ppm</option><option value="d500">Diesel 500ppm</option></select></div>
+          <div class="field"><label class="label" for="vehicle">Vehicle</label>
+            <select id="vehicle"><option value="own">My own car</option><option value="rental">Rental (≈R550/day)</option></select></div>
+        </div>
+        <div class="field">
+          <span class="label" id="modeLbl">Price to budget with</span>
+          <div class="seg" role="group" aria-labelledby="modeLbl" id="fuelMode">
+            <button type="button" data-v="current">This month</button>
+            <button type="button" data-v="forecast">Next month</button>
+            <button type="button" data-v="manual">My price</button>
+          </div>
+        </div>
+        <div class="field" id="manualWrap"><label class="label" for="manualPrice">My pump price (R/litre)</label><input id="manualPrice" type="number" min="10" max="50" step="0.01" value="27"></div>
+        <div class="fuelstat" id="fuelStat"></div>
+        <div class="row2">
+          <div class="field"><label class="label" for="cons">Fuel use (L/100 km)</label><input id="cons" type="number" min="3" max="25" step="0.5" value="8"></div>
+          <div class="field"><label class="label" for="maxkm">Max km per day</label><input id="maxkm" type="number" min="150" max="1200" step="50" value="550"></div>
+        </div>
+      </fieldset>
+    </form>
+
+    <div class="mapcard">
+      <svg id="map" viewBox="-14 -14 560 500" role="img" aria-label="Map of South Africa showing your route and places to visit"></svg>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--sign)"></i>Start</span>
+        <span><i class="sw" style="background:var(--surface);border:3px solid var(--route)"></i>Overnight stop</span>
+        <span><i class="sw" style="background:var(--route)"></i>Destination</span>
+        <span><i class="sw" style="background:var(--surface);border:2px solid var(--dot)"></i>Place to visit (tap to pick)</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="summary" id="summary" aria-live="polite"></section>
+
+  <section class="twocol">
+    <div>
+      <div class="sect-head"><h2>Your route</h2><span class="label" id="routeNote"></span></div>
+      <div id="days"></div>
+    </div>
+    <div class="stackcol">
+      <div>
+        <div class="sect-head"><h2>Budget outline</h2><span class="label" id="budgetNote"></span></div>
+        <div class="box" id="budget"></div>
+      </div>
+      <div>
+        <div class="sect-head"><h2>Fuel price monitor</h2><span id="monitorPill"></span></div>
+        <div class="box" id="monitor"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="places-head">
+    <div class="sect-head" style="margin:0"><h2>Places to visit in South Africa</h2><span class="label" id="placeCount"></span></div>
+    <div class="dirtools">
+      <input class="search" id="q" type="search" placeholder="Search places, e.g. falls, Drakensberg, penguins" aria-label="Search places">
+      <select class="search" id="region" aria-label="Province"></select>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="places"></div>
+    <button type="button" class="btn more" id="moreBtn" hidden>Show all places</button>
+  </section>
+
+  <p class="foot">Road distances are estimates and driving times assume an average of 85 km/h. Fuel is priced per stretch of road at the official inland or coastal price. Diesel is regulated only at wholesale, so we add R1.20/L for the pump margin. Accommodation, toll, park and activity prices are 2026 ballpark figures for planning only. Confirm with the operator before you book. Your settings are saved in this browser.</p>
+</div>
+
+<script>
+// ---------- Road network: id: [name, lat, lon, coastal fuel zone] ----------
+const N={
+ CPT:['Cape Town',-33.925,18.424,1],STB:['Stellenbosch',-33.932,18.860,1],HER:['Hermanus',-34.418,19.235,1],
+ SWL:['Swellendam',-34.023,20.442,1],WOR:['Worcester',-33.646,19.448,1],LAI:['Laingsburg',-33.196,20.859,0],
+ MOS:['Mossel Bay',-34.183,22.146,1],GRG:['George',-33.963,22.462,1],OUD:['Oudtshoorn',-33.590,22.201,1],
+ KNY:['Knysna',-34.036,23.048,1],PLT:['Plettenberg Bay',-34.053,23.372,1],PE:['Gqeberha',-33.961,25.602,1],
+ BEA:['Beaufort West',-32.357,22.583,0],GRA:['Graaff-Reinet',-32.252,24.531,0],CDK:['Cradock',-32.164,25.619,0],
+ COL:['Colesberg',-30.720,25.098,0],BFN:['Bloemfontein',-29.085,26.159,0],KIM:['Kimberley',-28.732,24.762,0],
+ UPN:['Upington',-28.448,21.256,0],SPR:['Springbok',-29.664,17.886,0],CLW:['Clanwilliam',-32.179,18.891,1],
+ KRO:['Kroonstad',-27.650,27.234,0],JHB:['Johannesburg',-26.204,28.047,0],PTA:['Pretoria',-25.747,28.229,0],
+ POL:['Polokwane',-23.904,29.469,0],MKH:['Makhado',-23.044,29.904,0],PHA:['Phalaborwa',-23.943,31.141,0],
+ EML:['eMalahleni',-25.871,29.233,0],MBO:['Mbombela',-25.475,30.970,0],HAZ:['Hazyview',-25.046,31.128,0],
+ SKZ:['Skukuza',-24.996,31.592,0],GRS:['Graskop',-24.932,30.841,0],HAR:['Harrismith',-28.276,29.129,0],
+ CLA:['Clarens',-28.517,28.420,0],BER:['Bergville',-28.733,29.355,0],PMB:['Pietermaritzburg',-29.602,30.379,1],
+ DBN:['Durban',-29.858,31.022,1],STL:['St Lucia',-28.380,32.413,1],MLA:['Margate',-30.863,30.370,1],
+ KOK:['Kokstad',-30.547,29.424,0],MTH:['Mthatha',-31.589,28.784,1],PSJ:['Port St Johns',-31.623,29.544,1],
+ ELS:['East London',-33.015,27.912,1],MAK:['Makhanda',-33.310,26.526,1],BET:['Bethlehem',-28.231,28.307,0],
+ RUS:['Rustenburg',-25.667,27.242,0],BEL:['Bela-Bela',-24.884,28.293,0],MUS:['Musina',-22.352,30.040,0],
+ HOE:['Hoedspruit',-24.355,30.957,0],SAB:['Sabie',-25.098,30.780,0],DUL:['Dullstroom',-25.418,30.105,0],
+ HLU:['Hluhluwe',-28.020,32.270,1],LAD:['Ladysmith',-28.560,29.781,0],JBY:['Jeffreys Bay',-34.050,24.920,1],
+ STR:['Storms River',-33.967,23.875,1],LAN:['Langebaan',-33.093,18.033,1],BRE:['Bredasdorp',-34.533,20.042,1],
+ SUT:['Sutherland',-32.398,20.662,0],TWR:['Twee Rivieren',-26.471,20.613,0],VAA:['Vanderbijlpark',-26.700,27.836,0],
+ HOG:['Hogsback',-32.588,26.932,1]
+};
+// [a, b, road, approx class-1 toll in rand, one way]
+const E=[
+ ['CPT','STB','R310',0],['CPT','WOR','N1',60],['CPT','HER','N2',0],['STB','SWL','N2',0],['HER','BRE','R43',0],['BRE','SWL','R319',0],
+ ['WOR','LAI','N1',0],['LAI','BEA','N1',0],['LAI','SUT','R354',0],['SWL','MOS','N2',0],['MOS','GRG','N2',0],['GRG','KNY','N2',0],
+ ['KNY','PLT','N2',0],['PLT','STR','N2',70],['STR','JBY','N2',0],['JBY','PE','N2',0],['GRG','OUD','N12',0],['OUD','BEA','N12',0],
+ ['BEA','COL','N1',0],['BEA','GRA','N9',0],['GRA','CDK','R61',0],['GRA','PE','R75',0],['CDK','PE','N10',0],['CDK','COL','N10',0],
+ ['COL','BFN','N1',0],['BFN','KRO','N1',120],['KRO','JHB','N1',150],['JHB','PTA','N1',30],['PTA','BEL','N1',75],['BEL','POL','N1',110],
+ ['POL','MKH','N1',0],['MKH','MUS','N1',60],['POL','PHA','R71',0],['MKH','PHA','R524',0],['PTA','EML','N4',110],['JHB','EML','N12',0],
+ ['EML','MBO','N4',190],['EML','DUL','N4',60],['DUL','SAB','R37',0],['MBO','SAB','R37',0],['MBO','HAZ','R40',0],['SAB','HAZ','R536',0],
+ ['SAB','GRS','R532',0],['HAZ','SKZ','R536',0],['HAZ','GRS','R535',0],['GRS','HOE','R532',0],['HOE','PHA','R40',0],
+ ['BFN','KIM','N8',0],['KIM','UPN','N8',0],['UPN','SPR','N14',0],['UPN','TWR','R360',0],['SPR','CLW','N7',0],['CLW','CPT','N7',0],
+ ['CPT','LAN','R27',0],['LAN','CLW','R27',0],['KIM','JHB','N12',0],['JHB','RUS','N4',60],['PTA','RUS','N4',70],['JHB','VAA','R59',0],
+ ['JHB','HAR','N3',190],['HAR','BET','N5',0],['BET','CLA','R712',0],['HAR','CLA','R712',0],['BET','BFN','N5',0],['HAR','BER','R74',0],
+ ['HAR','LAD','N3',0],['BER','LAD','R616',0],['LAD','PMB','N3',110],['PMB','DBN','N3',20],['DBN','HLU','N2',95],['HLU','STL','R618',0],
+ ['DBN','MLA','N2',20],['MLA','KOK','N2',0],['KOK','MTH','N2',0],['MTH','PSJ','R61',0],['MTH','ELS','N2',0],['ELS','MAK','N2',0],
+ ['MAK','PE','N2',0],['CDK','MAK','R67',0],['MAK','HOG','R63',0]
+];
+const ROAD_FACTOR=1.2;
+function hav(la1,lo1,la2,lo2){const t=Math.PI/180;const d=Math.sin((la2-la1)*t/2)**2+Math.cos(la1*t)*Math.cos(la2*t)*Math.sin((lo2-lo1)*t/2)**2;return 2*6371*Math.asin(Math.sqrt(d));}
+const ADJ={};for(const k in N)ADJ[k]=[];
+E.forEach(([a,b,road,toll])=>{const km=Math.round(hav(N[a][1],N[a][2],N[b][1],N[b][2])*ROAD_FACTOR);ADJ[a].push({to:b,km,road,toll});ADJ[b].push({to:a,km,road,toll});});
+const SP={};
+function paths(src){
+ if(SP[src])return SP[src];
+ const dist={},prev={},seen=new Set();for(const k in N)dist[k]=Infinity;dist[src]=0;
+ for(;;){let u=null;for(const k in N)if(!seen.has(k)&&(u===null||dist[k]<dist[u]))u=k;
+  if(u===null||dist[u]===Infinity)break;seen.add(u);
+  for(const e of ADJ[u]){const nd=dist[u]+e.km;if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]={from:u,e};}}}
+ return SP[src]={dist,prev};
+}
+function legsTo(src,dst){const {prev}=paths(src);const legs=[];let c=dst;
+ while(c!==src){const p=prev[c];if(!p)return [];legs.unshift({from:p.from,to:c,km:p.e.km,road:p.e.road,toll:p.e.toll});c=p.from;}return legs;}
+
+// ---------- Places ----------
+const REG={WC:'Western Cape',EC:'Eastern Cape',NC:'Northern Cape',FS:'Free State',KZN:'KwaZulu-Natal',GP:'Gauteng',NW:'North West',MP:'Mpumalanga',LP:'Limpopo'};
+const CAT={wildlife:'Wildlife & safari',waterfall:'Waterfalls',dam:'Dams & lakes',beach:'Beaches & coast',mountain:'Mountains & views',resort:'Resorts & lodges',culture:'Culture & history',wine:'Wine & food',adventure:'Adventure'};
+// [id, name, category, lat, lon, province, best time, activity R per person, activity, description, {park:[resident, international R/person/day], stay:{rate R/room/night, meals}}]
+const RAW=[
+ ['kruger','Kruger National Park','wildlife',-24.996,31.592,'MP','May–Sep',600,'Sunset game drive','The Big Five on nearly 2 million hectares. Self-drive between rest camps or book guided drives.',{park:[140,560]}],
+ ['addo','Addo Elephant National Park','wildlife',-33.444,25.745,'EC','All year',300,'Guided game drive','More than 600 elephants an hour from Gqeberha. Malaria-free and easy with kids.',{park:[110,440]}],
+ ['pilanesberg','Pilanesberg Game Reserve','wildlife',-25.25,27.09,'NW','Apr–Sep',550,'Guided game drive','Big Five in an ancient volcanic crater, two hours from Johannesburg and next to Sun City.',{park:[110,160]}],
+ ['hluhluwe','Hluhluwe–iMfolozi Park','wildlife',-28.22,31.95,'KZN','May–Sep',500,'Guided game drive','Africa’s oldest proclaimed reserve and the place that saved the white rhino.',{park:[130,260]}],
+ ['kgalagadi','Kgalagadi Transfrontier Park','wildlife',-26.471,20.613,'NC','Mar–May',450,'Night drive','Red dunes, black-maned Kalahari lions and cheetah along the dry Nossob and Auob rivers.',{park:[100,440]}],
+ ['mapungubwe','Mapungubwe National Park','wildlife',-22.2,29.39,'LP','Apr–Sep',250,'Heritage tour of Mapungubwe Hill','Where South Africa, Botswana and Zimbabwe meet: elephants, baobabs and the golden rhino kingdom.',{park:[80,320]}],
+ ['mtzebra','Mountain Zebra National Park','wildlife',-32.25,25.45,'EC','Mar–May',495,'Cheetah tracking on foot','Karoo plateaus with Cape mountain zebra, cheetah and huge night skies near Cradock.',{park:[80,320]}],
+ ['isimangaliso','iSimangaliso Wetland Park','wildlife',-28.38,32.41,'KZN','May–Sep',350,'Hippo and croc boat cruise','A World Heritage estuary where hippos wander through St Lucia town at night.',{park:[60,240]}],
+ ['boulders','Boulders Beach Penguins','wildlife',-34.197,18.451,'WC','All year',0,'Boardwalk entry','A colony of African penguins on granite boulders near Simon’s Town.',{park:[100,215]}],
+ ['tugela','Tugela Falls & Amphitheatre','waterfall',-28.68,28.93,'KZN','Nov–Mar',150,'Royal Natal entry + Tugela Gorge hike','The world’s second-highest waterfall drops off a 5 km basalt wall in the northern Drakensberg.',{park:[80,200]}],
+ ['howick','Howick Falls','waterfall',-29.488,30.238,'KZN','Nov–Mar',0,'Free viewing platform','A 95 m drop right in Howick town, five minutes off the N3.'],
+ ['macmac','Mac Mac Falls','waterfall',-24.995,30.81,'MP','Nov–Mar',20,'Site entry','Twin falls in a pine-covered gorge, blasted open by gold miners in the 1870s.'],
+ ['lisbon','Lisbon & Berlin Falls','waterfall',-24.87,30.86,'MP','Nov–Mar',40,'Entry to both falls','The tallest falls in Mpumalanga, a short drive apart on the Panorama Route.'],
+ ['bridalveil','Bridal Veil & Lone Creek Falls','waterfall',-25.07,30.76,'MP','Nov–Mar',40,'Entry to both falls','Forest walks to two delicate falls just outside Sabie.'],
+ ['augrabies','Augrabies Falls','waterfall',-28.59,20.34,'NC','Apr–Sep',0,'Moon Rock and gorge walks','The Orange River thunders into a 56 m granite gorge on the Kalahari edge.',{park:[100,400]}],
+ ['magwa','Magwa Falls','waterfall',-31.35,29.63,'EC','Oct–Apr',50,'Guide and community fee','A narrow 140 m drop into a slot gorge among tea plantations near Lusikisiki.'],
+ ['debengeni','Debengeni Falls','waterfall',-23.817,30.032,'LP','Nov–Mar',30,'Site entry','A cascade into deep pools in the Magoebaskloof forests.'],
+ ['hogsback','Hogsback Waterfalls','waterfall',-32.59,26.93,'EC','Oct–Apr',0,'Free forest trails','A misty forest village with the 39 Steps and Madonna and Child falls.'],
+ ['harties','Hartbeespoort Dam','dam',-25.73,27.85,'NW','All year',350,'Aerial cableway','Joburg’s weekend escape: a cableway, boat cruises and markets along the shore.'],
+ ['vaal','Vaal Dam','dam',-26.88,28.12,'GP','Sep–Apr',350,'Boat cruise','Gauteng’s inland sea for sailing, waterskiing and lazy riverside lodges.'],
+ ['gariep','Gariep Dam','dam',-30.62,25.51,'FS','All year',100,'Dam wall tour','South Africa’s largest reservoir on the Orange River, an easy N1 stopover.'],
+ ['sterkfontein','Sterkfontein Dam','dam',-28.43,29.03,'FS','Oct–Apr',50,'Nature reserve entry','Deep blue water against the Drakensberg escarpment near Harrismith.'],
+ ['midmar','Midmar Dam','dam',-29.50,30.19,'KZN','Sep–Apr',80,'Nature reserve entry','Home of the Midmar Mile swim, with picnics, game and boating in the Midlands.'],
+ ['theewaters','Theewaterskloof Dam','dam',-34.03,19.24,'WC','Sep–Apr',50,'Day visit','The Western Cape’s biggest dam, ringed by mountains and fruit farms.'],
+ ['jozini','Jozini Dam (Pongolapoort)','dam',-27.43,32.04,'KZN','Apr–Oct',650,'Tigerfish boat trip','Tigerfishing and houseboats among the Lebombo Mountains, with elephants on the shore.'],
+ ['loskop','Loskop Dam','dam',-25.42,29.37,'MP','Apr–Oct',100,'Nature reserve entry','A gorge-flanked dam inside a game reserve near Groblersdal.'],
+ ['vanderkloof','Vanderkloof Dam','dam',-29.99,24.73,'NC','Sep–Apr',100,'Boat hire','The country’s second-largest dam: houseboats, fishing and Karoo sunsets.'],
+ ['clanwilliamdam','Clanwilliam Dam','dam',-32.2,18.87,'WC','Sep–Apr',50,'Day visit','Watersports below the Cederberg peaks, in rooibos country.'],
+ ['ebenezer','Ebenezer Dam','dam',-23.94,29.98,'LP','All year',0,'Free viewpoints','Forest-fringed water between Haenertsburg and Tzaneen.'],
+ ['clifton','Clifton & Camps Bay','beach',-33.95,18.38,'WC','Nov–Mar',0,'Free beaches','White sand under the Twelve Apostles, with sundowners on the Camps Bay strip.'],
+ ['muizenberg','Muizenberg','beach',-34.11,18.47,'WC','Nov–Mar',350,'Surf lesson and board hire','Colourful beach huts and gentle waves, the classic place to learn to surf.'],
+ ['hermanus','Hermanus Whale Coast','beach',-34.418,19.235,'WC','Jul–Nov',1250,'Boat-based whale watching','Southern right whales come close to the cliffs. Walk the cliff path or take a boat out.'],
+ ['agulhas','Cape Agulhas','beach',-34.83,20.0,'WC','Oct–Apr',80,'Lighthouse climb','The southern tip of Africa, where a plaque marks the meeting of two oceans.'],
+ ['jbay','Jeffreys Bay','beach',-34.05,24.92,'EC','Jun–Aug',350,'Surf lesson','Home of Supertubes, one of the world’s best right-hand point breaks.'],
+ ['plett','Plettenberg Bay & Robberg','beach',-34.10,23.38,'WC','Oct–Apr',100,'Robberg Nature Reserve hike','Long beaches, seals and a dramatic peninsula hike.'],
+ ['garden','Knysna & the Garden Route','beach',-34.036,23.048,'WC','All year',600,'Knysna Heads cruise + forest walk','Lagoons, forests and beaches between George and Plettenberg Bay.'],
+ ['wilderness','Wilderness','beach',-33.99,22.58,'WC','Oct–Apr',250,'Kayak and waterfall trail','Lakes, river kayaking and paragliding over an endless beach.'],
+ ['durban','Durban Golden Mile','beach',-29.858,31.035,'KZN','Apr–Sep',400,'uShaka Marine World','Warm Indian Ocean surf and the beachfront promenade.'],
+ ['umhlanga','Umhlanga & Ballito','beach',-29.65,31.12,'KZN','Apr–Sep',0,'Free beaches and promenade','The lighthouse, tidal pools and resorts of the Dolphin Coast.'],
+ ['coffeebay','Coffee Bay & Hole in the Wall','beach',-31.97,29.15,'EC','Oct–Apr',150,'Guided coastal hike','A detached cliff with a wave-carved arch on the Wild Coast.'],
+ ['psj','Port St Johns','beach',-31.62,29.54,'EC','Oct–Apr',100,'Second Beach and gorge walk','Remote green hills, river mouths and empty beaches on the Wild Coast.'],
+ ['sodwana','Sodwana Bay','beach',-27.54,32.68,'KZN','Nov–May',1100,'Two-tank scuba dive','The southernmost coral reefs in Africa, plus turtle nesting from November.'],
+ ['kosi','Kosi Bay','beach',-26.95,32.83,'KZN','Nov–May',300,'Snorkelling at the mouth','A chain of lakes with traditional fish traps near the Mozambique border.'],
+ ['langebaan','Langebaan Lagoon','beach',-33.09,18.03,'WC','Aug–Mar',400,'Kitesurf lesson','Turquoise lagoon water with West Coast National Park next door.'],
+ ['paternoster','Paternoster','beach',-32.81,17.89,'WC','Aug–Apr',0,'Free beaches','A whitewashed fishing village known for its seafood and quiet bays.'],
+ ['mosselbay','Mossel Bay','beach',-34.18,22.15,'WC','All year',120,'Dias Museum','Where Bartolomeu Dias landed in 1488. Warm water and the St Blaize cliff trail.'],
+ ['southcoast','KZN South Coast','beach',-30.86,30.37,'KZN','Apr–Sep',0,'Free beaches','Family beaches, tidal pools and the Sardine Run in winter.'],
+ ['table','Table Mountain','mountain',-33.963,18.403,'WC','Oct–Apr',440,'Cable car return','Ride the cable car or hike Platteklip Gorge for the view over Cape Town.'],
+ ['capepoint','Cape Point','mountain',-34.357,18.497,'WC','Oct–Apr',0,'Lighthouse walk','Sheer cliffs at the end of the Cape Peninsula, with ostriches along the road.',{park:[115,455]}],
+ ['kirstenbosch','Kirstenbosch Garden','mountain',-33.988,18.433,'WC','Aug–Oct',220,'Garden entry','Botanical garden on Table Mountain’s slopes with the Boomslang canopy walkway.'],
+ ['cederberg','Cederberg Wilderness','mountain',-32.35,19.10,'WC','Mar–May',200,'Hiking permit + rock art walk','Orange sandstone arches, San rock art and the Wolfberg Cracks.'],
+ ['cathedral','Cathedral Peak','mountain',-28.95,29.20,'KZN','Mar–May',0,'Day hikes','Free-standing peaks and rock pools in the central Drakensberg.',{park:[80,200]}],
+ ['giants','Giant’s Castle','mountain',-29.27,29.52,'KZN','Mar–May',120,'Main Caves rock art tour','San rock art and bearded vultures in the Drakensberg.',{park:[80,200]}],
+ ['goldengate','Golden Gate & Clarens','mountain',-28.51,28.58,'FS','Mar–May',0,'Scenic drives and hikes','Sandstone cliffs, art galleries and craft beer in the Free State’s mountain village.',{park:[90,250]}],
+ ['blyde','Blyde River Canyon','mountain',-24.58,30.80,'MP','Apr–Sep',100,'Three Rondavels viewpoint','One of the largest green canyons on earth, with the Three Rondavels above the dam.'],
+ ['godswindow','God’s Window','mountain',-24.875,30.89,'MP','Apr–Sep',30,'Viewpoint entry','A cliff-edge view 900 m down to the Lowveld.'],
+ ['bourkes','Bourke’s Luck Potholes','mountain',-24.68,30.81,'MP','Apr–Sep',100,'Site entry','Swirling rock potholes carved where two rivers meet.'],
+ ['swartberg','Swartberg Pass','mountain',-33.35,22.05,'WC','Mar–May',0,'Free gravel drive','A 19th-century gravel pass between Oudtshoorn and Prince Albert.'],
+ ['tsitsikamma','Tsitsikamma Storms River Mouth','mountain',-34.02,23.90,'EC','All year',0,'Suspension bridge walk','A suspension bridge over the river mouth and the start of the Otter Trail.',{park:[80,320]}],
+ ['karoonp','Karoo National Park','mountain',-32.33,22.50,'WC','Mar–May',0,'Fossil trail and 4x4 routes','Karoo plains and fossil trails outside Beaufort West. A great N1 stopover.',{park:[80,320]}],
+ ['namaqua','Namaqualand Flowers','mountain',-30.17,17.77,'NC','Aug–Sep',0,'Flower route','After winter rain the semi-desert turns into fields of orange and white daisies.',{park:[60,240]}],
+ ['desolation','Valley of Desolation','mountain',-32.27,24.48,'EC','Mar–May',0,'Viewpoint','Dolerite pillars above Graaff-Reinet. Best at sunset.',{park:[80,320]}],
+ ['suncity','Sun City & Lost City','resort',-25.334,27.093,'NW','All year',250,'Valley of Waves','Casino resort with a wave pool, golf courses and the Pilanesberg on the doorstep.',{stay:{rate:4200}}],
+ ['zimbali','Zimbali Coastal Resort','resort',-29.556,31.226,'KZN','Apr–Sep',0,'Beach and golf','A forest-and-dune estate on the North Coast with its own beach.',{stay:{rate:3600}}],
+ ['fancourt','Fancourt','resort',-33.94,22.43,'WC','All year',0,'Spa and golf','Championship golf and a large spa below the Outeniqua Mountains in George.',{stay:{rate:3800}}],
+ ['champagne','Champagne Sports Resort','resort',-29.04,29.42,'KZN','Mar–May',0,'Golf and hiking','Family resort in the Champagne Valley facing Cathkin Peak. Half board.',{stay:{rate:3400,meals:true}}],
+ ['sabisand','Sabi Sand safari lodges','resort',-24.84,31.43,'MP','May–Sep',0,'Game drives included','Private Big Five lodges bordering Kruger, famous for leopard sightings. Full board.',{stay:{rate:14000,meals:true}}],
+ ['belabela','Bela-Bela hot springs','resort',-24.88,28.29,'LP','May–Sep',150,'Day spa pools','Warm mineral springs and family water parks, 90 minutes from Pretoria.',{stay:{rate:1700}}],
+ ['mykonos','Club Mykonos Langebaan','resort',-33.11,18.04,'WC','Nov–Mar',0,'Pools and marina','A Greek-village-style resort with pools and a marina on the West Coast.',{stay:{rate:2300}}],
+ ['pezula','Pezula, Knysna','resort',-34.07,23.08,'WC','All year',0,'Spa and private beach','A luxury cliff-top hotel above the Knysna Heads.',{stay:{rate:6500}}],
+ ['mountgrace','Mount Grace, Magaliesberg','resort',-25.83,27.62,'NW','All year',0,'Spa','A country hotel and spa in the Magaliesberg hills.',{stay:{rate:4800}}],
+ ['sanlameer','San Lameer','resort',-30.94,30.31,'KZN','Apr–Sep',0,'Beach and golf','A South Coast estate with a lagoon and a private beach.',{stay:{rate:2300}}],
+ ['lanzerac','Lanzerac, Stellenbosch','resort',-33.93,18.89,'WC','Feb–Apr',300,'Wine tasting','A historic wine estate hotel in the Jonkershoek Valley.',{stay:{rate:6800}}],
+ ['sabiriver','Sabi River Sun, Hazyview','resort',-25.06,31.11,'MP','May–Sep',0,'Golf and pools','A riverside resort 15 minutes from Kruger’s Phabeni Gate.',{stay:{rate:2900}}],
+ ['waterfront','V&A Waterfront','culture',-33.903,18.42,'WC','All year',0,'Free entry','Harbour shopping, food markets and the Zeitz MOCAA art museum.'],
+ ['robben','Robben Island','culture',-33.80,18.37,'WC','All year',600,'Ferry + guided tour','The prison island where Nelson Mandela spent 18 years, guided by former prisoners.'],
+ ['bokaap','Bo-Kaap','culture',-33.92,18.415,'WC','All year',300,'Cape Malay cooking class','Brightly painted homes and Cape Malay food on the slopes of Signal Hill.'],
+ ['soweto','Soweto & Vilakazi Street','culture',-26.24,27.91,'GP','All year',450,'Mandela House + guided tour','The only street with the homes of two Nobel Peace Prize winners.'],
+ ['apartheid','Apartheid Museum & Gold Reef City','culture',-26.237,28.01,'GP','All year',550,'Museum + theme park','A powerful museum right next to a gold-rush theme park.'],
+ ['conhill','Constitution Hill','culture',-26.19,28.04,'GP','All year',100,'Guided tour','A former prison that now houses South Africa’s Constitutional Court.'],
+ ['union','Union Buildings, Pretoria','culture',-25.74,28.21,'GP','Sep–Oct',0,'Free gardens','Terraced gardens and the 9 m Mandela statue. In spring Pretoria turns purple with jacarandas.'],
+ ['cradle','Cradle of Humankind','culture',-25.92,27.74,'GP','All year',380,'Maropeng + Sterkfontein Caves','Fossil sites where Little Foot and Mrs Ples were found.'],
+ ['bighole','Kimberley Big Hole','culture',-28.738,24.758,'NC','Apr–Sep',150,'Museum + viewing platform','The hand-dug diamond mine that built Kimberley.'],
+ ['capture','Nelson Mandela Capture Site','culture',-29.47,30.17,'KZN','All year',100,'Site entry','A steel sculpture of Mandela’s face marks where he was arrested in 1962.'],
+ ['isandlwana','Isandlwana Battlefield','culture',-28.36,30.65,'KZN','Apr–Sep',100,'Guided battlefield tour','Site of the 1879 Zulu victory over the British army.'],
+ ['graaff','Graaff-Reinet','culture',-32.252,24.531,'EC','Mar–May',100,'Museum pass','A preserved Karoo town with over 200 national monuments.'],
+ ['pilgrims','Pilgrim’s Rest','culture',-24.91,30.76,'MP','Apr–Sep',100,'Museum + gold panning','A gold-rush village kept as a living museum.'],
+ ['cango','Cango Caves & Oudtshoorn','culture',-33.39,22.21,'WC','Mar–May',430,'Cave tour + ostrich farm','Klein Karoo limestone caves in the ostrich capital of the world.'],
+ ['sutherland','Sutherland Observatory','culture',-32.38,20.81,'NC','Apr–Sep',150,'Day tour of SALT','The Southern African Large Telescope under some of the darkest skies on earth.'],
+ ['matjies','Matjiesfontein','culture',-33.23,20.58,'WC','All year',0,'Free village walk','A Victorian railway village frozen in time just off the N1.'],
+ ['sudwala','Sudwala Caves','culture',-25.37,30.70,'MP','All year',200,'Guided cave tour','Some of the oldest caves on earth, with a dinosaur park outside.'],
+ ['qunu','Nelson Mandela Museum, Qunu','culture',-31.79,28.62,'EC','All year',0,'Free entry','Mandela’s childhood village and youth centre near Mthatha.'],
+ ['stellenbosch','Stellenbosch Winelands','wine',-33.932,18.86,'WC','Feb–Apr',450,'Two tastings + cellar tour','Oak-lined streets, Cape Dutch farms and more than 150 wine estates.'],
+ ['franschhoek','Franschhoek Wine Tram','wine',-33.91,19.12,'WC','Feb–Apr',400,'Hop-on hop-off tram ticket','Ride an open tram between vineyards in the Huguenot valley.'],
+ ['constantia','Constantia','wine',-34.03,18.42,'WC','Feb–Apr',300,'Two tastings','The oldest wine route in the country, 20 minutes from the city.'],
+ ['route62','Route 62','wine',-33.80,19.88,'WC','Feb–May',250,'Tastings along the way','Wine farms, padstals and quirky roadside pubs from Robertson to Barrydale.'],
+ ['dullstroom','Dullstroom','wine',-25.418,30.105,'MP','Apr–Sep',350,'Trout fishing day permit','Trout dams, whisky bars and fireplaces in the Mpumalanga highlands.'],
+ ['durbanfood','Durban curry trail','wine',-29.85,31.0,'KZN','All year',200,'Bunny chow + spice market','The best bunny chow and curry in the country, plus the Victoria Street Market.'],
+ ['bloukrans','Bloukrans Bridge Bungy','adventure',-33.968,23.647,'WC','All year',1600,'Bungy jump','A 216 m bungy jump off a road bridge on the Garden Route.'],
+ ['sharks','Gansbaai shark cage diving','adventure',-34.58,19.35,'WC','Apr–Sep',2200,'Cage dive trip','Cage dives with sharks at Shark Alley off Dyer Island.'],
+ ['sani','Sani Pass','adventure',-29.6,29.35,'KZN','Mar–May',1200,'Guided 4x4 day trip','A steep gravel pass into Lesotho. 4x4 only, and bring your passport.'],
+ ['magalies','Magaliesberg Canopy Tour','adventure',-25.80,27.37,'NW','All year',750,'Zip-line tour','Zip lines across a gorge in mountains older than Everest.'],
+ ['gorgelift','Graskop Gorge Lift','adventure',-24.93,30.84,'MP','All year',260,'Lift and forest walk','A glass lift 51 m down into a forest gorge.'],
+ ['oribi','Oribi Gorge','adventure',-30.70,30.30,'KZN','All year',650,'Gorge swing','A 24 km gorge with a 100 m swing and a suspension bridge.'],
+ ['rafting','Orange River rafting','adventure',-28.77,20.62,'NC','Apr–Sep',900,'Half-day rafting trip','Rafting and kayaking through granite country near Augrabies.']
+];
+const D=RAW.map(([id,name,cat,lat,lon,reg,best,act,actLbl,blurb,x])=>{
+ let node=null,best_=Infinity;for(const k in N){const d=hav(lat,lon,N[k][1],N[k][2]);if(d<best_){best_=d;node=k;}}
+ const lastKm=best_<4?0:Math.round(best_*1.25);
+ return {id,name,cat,lat,lon,region:REG[reg],best,act,actLbl,blurb,park:x&&x.park,stay:x&&x.stay,node,lastKm};
+});
+const BY_ID=Object.fromEntries(D.map(d=>[d.id,d]));
+const BY_NODE={};D.forEach(d=>(BY_NODE[d.node]=BY_NODE[d.node]||[]).push(d));
+
+// ---------- Prices ----------
+const ACC={
+ camp:{lbl:'Camping or park hut',rate:600,sleeps:4,ff:0.8},
+ airbnb:{lbl:'Airbnb or self-catering home',rate:1500,sleeps:4,ff:0.75},
+ bnb:{lbl:'Guesthouse or B&B',rate:1300,sleeps:2,ff:0.85},
+ hotel:{lbl:'Hotel (3–4 star)',rate:1900,sleeps:2,ff:1},
+ lodge:{lbl:'Resort or lodge',rate:4500,sleeps:2,ff:0.9}
+};
+const FOOD={budget:300,comfort:600,luxury:1200};
+const RENTAL_PER_DAY=550, AVG_KMH=85, CONTINGENCY=0.10, DIESEL_MARGIN=1.20;
+const GRADE={p95:'Petrol 95',p93:'Petrol 93',d50:'Diesel 50ppm',d500:'Diesel 500ppm'};
+
+// ---------- State ----------
+const KEY='padkos-planner-v2';
+const DEF={from:'JHB',to:'garden',travellers:2,nights:3,acc:'bnb',food:'comfort',target:30000,ret:true,resident:true,vehicle:'own',grade:'p95',fuelMode:'current',manualPrice:27,cons:8,maxkm:550,cat:'all',region:'all',q:''};
+let S={...DEF};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)S={...DEF,...s};}catch(e){}
+if(!N[S.from])S.from=DEF.from; if(!BY_ID[S.to])S.to=DEF.to; if(!ACC[S.acc])S.acc=DEF.acc;
+let showAll=false;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+// Live fuel prices arrive from the artifact database
+const FUEL={status:'loading',doc:null};
+
+const $=id=>document.getElementById(id);
+const R=n=>'R '+Math.round(n).toLocaleString('en-ZA').replace(/[,\s ]/g,' ');
+const R2=n=>'R'+n.toFixed(2);
+const kmf=n=>Math.round(n).toLocaleString('en-ZA').replace(/[,\s ]/g,' ');
+const hrs=km=>{const m=Math.round(km/AVG_KMH*60);return Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min';};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate=s=>{if(!s)return'';const d=new Date(s+'T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short',year:'numeric'});};
+const stayLinks=(town,t)=>{const q=encodeURIComponent(town+', South Africa');
+ return `<span class="stays"><span class="label">Find a stay</span><a href="https://www.airbnb.co.za/s/${q}/homes?adults=${t}" target="_blank" rel="noopener">Airbnb</a><a href="https://www.booking.com/searchresults.html?ss=${q}&group_adults=${t}" target="_blank" rel="noopener">Booking.com</a></span>`;};
+
+// ---------- Form setup ----------
+Object.keys(N).sort((a,b)=>N[a][0].localeCompare(N[b][0])).forEach(k=>$('from').add(new Option(N[k][0],k)));
+Object.keys(CAT).forEach(c=>{const g=document.createElement('optgroup');g.label=CAT[c];D.filter(d=>d.cat===c).sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>g.appendChild(new Option(d.name,d.id)));$('to').appendChild(g);});
+Object.keys(ACC).forEach(k=>$('acc').add(new Option(`${ACC[k].lbl} · ${R(ACC[k].rate)}/night`,k)));
+$('region').add(new Option('All provinces','all'));Object.values(REG).forEach(r=>$('region').add(new Option(r,r)));
+
+function syncForm(){
+ ['from','to','travellers','nights','acc','target','vehicle','grade','manualPrice','cons','maxkm','region','q'].forEach(k=>{if($(k).value!==String(S[k]))$(k).value=S[k];});
+ $('ret').checked=S.ret;$('resident').checked=S.resident;
+ document.querySelectorAll('#food button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.food));
+}
+const LIM={travellers:[1,12],nights:[0,30],target:[0,1e7],cons:[3,25],maxkm:[150,1200],manualPrice:[10,50]};
+function onInput(e){
+ const t=e.target;if(!t.id)return;
+ if(t.type==='checkbox')S[t.id]=t.checked;
+ else if(t.type==='number'){if(t.value==='')return;const v=parseFloat(t.value);if(!isFinite(v))return;const l=LIM[t.id];S[t.id]=Math.min(l[1],Math.max(l[0],v));}
+ else S[t.id]=t.value;
+ if(t.id==='q'||t.id==='region'){showAll=false;save();renderPlaces();drawMap(plan());return;}
+ update();
+}
+$('form').addEventListener('input',onInput);$('q').addEventListener('input',onInput);$('region').addEventListener('input',onInput);
+$('food').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.food=b.dataset.v;syncForm();update();});
+$('fuelMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;S.fuelMode=b.dataset.v;update();});
+
+// ---------- Fuel pricing ----------
+function fuelMode(){
+ if(!FUEL.doc)return 'manual';
+ if(S.fuelMode==='forecast'&&!(FUEL.doc.forecast&&FUEL.doc.forecast.delta))return 'current';
+ return S.fuelMode;
+}
+function pumpPrice(zone){ // zone: 'inland' | 'coastal'
+ const m=fuelMode();
+ if(m==='manual')return S.manualPrice;
+ const P=FUEL.doc.prices&&FUEL.doc.prices[zone];let p=P&&P[S.grade];
+ if(typeof p!=='number')return S.manualPrice;
+ if(m==='forecast')p+=FUEL.doc.forecast.delta[S.grade]||0;
+ if(S.grade[0]==='d')p+=DIESEL_MARGIN;
+ return p;
+}
+
+// ---------- Planning ----------
+const nm=(k,dest)=>k==='@'?dest.name:N[k][0];
+function plan(){
+ const dest=BY_ID[S.to];
+ const legs=S.from===dest.node?[]:legsTo(S.from,dest.node).slice();
+ if(dest.lastKm>0)legs.push({from:dest.node,to:'@',km:dest.lastKm,road:'Local',toll:0});
+ const km=legs.reduce((s,l)=>s+l.km,0), toll=legs.reduce((s,l)=>s+l.toll,0);
+ const days=[];let cur=null;
+ legs.forEach(l=>{if(!cur||(cur.km>0&&cur.km+l.km>S.maxkm&&l.to!=='@')){cur={legs:[],km:0};days.push(cur);}cur.legs.push(l);cur.km+=l.km;});
+ const out=days.length, t=S.travellers, acc=ACC[S.acc], units=Math.ceil(t/acc.sleeps), F=FOOD[S.food];
+ const roadNights=Math.max(0,out-1)*(S.ret?2:1);
+ const nights=roadNights+S.nights, tripDays=nights+1, mult=S.ret?2:1;
+ // fuel per stretch by price zone
+ let kmIn=0,kmCo=0;legs.forEach(l=>{const z=l.to==='@'?N[dest.node][3]:N[l.to][3];if(z)kmCo+=l.km;else kmIn+=l.km;});
+ const pIn=pumpPrice('inland'),pCo=pumpPrice('coastal'),L=S.cons/100;
+ const fuel=(kmIn*pIn+kmCo*pCo)*L*mult;
+ const m=fuelMode();
+ const fuelWhy=m==='manual'?`${kmf(km*mult)} km × ${S.cons} L/100 km × ${R2(S.manualPrice)} (your price)`
+  :`${GRADE[S.grade]}, ${m==='forecast'?'expected next month':'official this month'}: ${kmf(kmIn*mult)} km inland at ${R2(pIn)}, ${kmf(kmCo*mult)} km coastal at ${R2(pCo)}, ${S.cons} L/100 km`;
+ const destRate=dest.stay?Math.ceil(t/2)*dest.stay.rate:units*acc.rate;
+ const accom=roadNights*units*acc.rate+S.nights*destRate;
+ const uw=`${units} ${acc.sleeps>2?'unit':'room'}${units>1?'s':''}`;
+ const destDays=S.nights, roadDays=tripDays-destDays;
+ const destFF=dest.stay?(dest.stay.meals?0.25:1):acc.ff;
+ const food=roadDays*t*F*acc.ff+destDays*t*F*destFF;
+ const fee=dest.park?dest.park[S.resident?0:1]:0, parkDays=Math.max(1,S.nights);
+ const lines=[
+  {k:'Fuel',c:'var(--route)',v:fuel,why:fuelWhy+(S.ret?', both ways':'')},
+  {k:'Tolls',c:'#8a6d3b',v:toll*mult,why:toll?`Toll plazas on the ${[...new Set(legs.filter(l=>l.toll).map(l=>l.road))].join(', ')}${S.ret?', both ways':''}`:'No toll roads on this route'},
+  {k:'Accommodation',c:'var(--sign)',v:accom,why:(roadNights?`${roadNights} night${roadNights>1?'s':''} on the road × ${uw} × ${R(acc.rate)} (${acc.lbl}). `:'')+(dest.stay?`${S.nights} night${S.nights===1?'':'s'} at ${dest.name}, ${Math.ceil(t/2)} room${Math.ceil(t/2)>1?'s':''} × ${R(dest.stay.rate)}`:`${S.nights} night${S.nights===1?'':'s'} there × ${uw} × ${R(acc.rate)}`)},
+  {k:'Food & padkos',c:'#5b8c6e',v:food,why:`${tripDays} days × ${t} people at about ${R(F)} a day${acc.ff<1?' (less with breakfast included or self-catering)':''}${dest.stay&&dest.stay.meals?', meals included at the resort':''}`},
+  {k:'Activities & entry',c:'#c2643a',v:t*dest.act+(dest.park?t*fee*parkDays:0),why:dest.actLbl+(dest.park?` + conservation fee ${R(fee)}/person/day × ${parkDays}`:'')},
+ ];
+ if(S.vehicle==='rental')lines.push({k:'Car rental',c:'#7a7f9a',v:tripDays*RENTAL_PER_DAY,why:`${tripDays} days × ${R(RENTAL_PER_DAY)} (economy car, basic cover)`});
+ const sub=lines.reduce((s,l)=>s+l.v,0);
+ lines.push({k:'Contingency (10%)',c:'var(--muted)',v:sub*CONTINGENCY,why:'Breakdowns, price changes, extras'});
+ return {dest,legs,km,days,out,nights,tripDays,lines,total:sub*(1+CONTINGENCY),t};
+}
+
+// ---------- Map ----------
+const K=36, COS=Math.cos(29*Math.PI/180);
+const P=(lat,lon)=>[+((lon-16.2)*COS*K).toFixed(1),+((-21.9-lat)*K).toFixed(1)];
+const SA=[[16.45,-28.63],[17.4,-28.75],[18.2,-28.9],[19.0,-28.95],[19.9,-28.45],[20.0,-24.76],[20.4,-25.4],[20.65,-26.85],[21.7,-26.85],[22.6,-26.1],[23.2,-25.3],[24.0,-25.6],[25.0,-25.75],[25.6,-25.6],[26.0,-24.8],[26.6,-24.4],[27.0,-23.65],[28.0,-22.6],[29.0,-22.2],[29.9,-22.2],[31.3,-22.4],[31.6,-23.2],[31.95,-24.4],[31.98,-25.45],[31.4,-25.75],[30.8,-26.3],[30.8,-26.8],[31.1,-27.3],[31.96,-27.3],[32.0,-26.85],[32.89,-26.86],[32.6,-27.9],[32.4,-28.6],[32.04,-28.85],[31.4,-29.4],[31.03,-29.86],[30.4,-30.85],[29.9,-31.3],[29.55,-31.63],[28.8,-32.1],[28.0,-32.85],[27.4,-33.25],[26.6,-33.7],[25.7,-34.0],[24.8,-34.2],[23.5,-34.08],[22.4,-34.05],[21.8,-34.38],[20.0,-34.83],[19.4,-34.6],[18.8,-34.38],[18.47,-34.35],[18.35,-33.9],[18.0,-33.0],[18.3,-32.4],[17.9,-31.3],[17.3,-30.3],[16.9,-29.5]];
+const LS=[[27.0,-29.6],[27.5,-29.25],[28.0,-28.75],[28.6,-28.57],[29.3,-29.0],[29.45,-29.6],[29.1,-30.15],[28.4,-30.65],[27.7,-30.6],[27.2,-30.1]];
+const poly=pts=>'M'+pts.map(([lo,la])=>P(la,lo).join(' ')).join('L')+'Z';
+function visiblePlaces(){const q=S.q.trim().toLowerCase();
+ return D.filter(d=>(S.cat==='all'||d.cat===S.cat)&&(S.region==='all'||d.region===S.region)&&(!q||(d.name+' '+d.blurb+' '+d.region+' '+CAT[d.cat]+' '+N[d.node][0]).toLowerCase().includes(q)));}
+function drawMap(p){
+ const xy=k=>k==='@'?P(p.dest.lat,p.dest.lon):P(N[k][1],N[k][2]);
+ let s=`<path class="land" d="${poly(SA)} ${poly(LS)}"/>`;
+ s+=E.map(([a,b])=>{const[x1,y1]=xy(a),[x2,y2]=xy(b);return`<line class="road" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;}).join('');
+ if(p.legs.length){const pts=[p.legs[0].from,...p.legs.map(l=>l.to)].map(k=>xy(k).join(',')).join(' ');
+  s+=`<polyline class="route-casing" points="${pts}"/><polyline class="route" points="${pts}"/>`;}
+ visiblePlaces().forEach(d=>{if(d.id===S.to)return;const[x,y]=P(d.lat,d.lon);
+  s+=`<circle class="ddot" data-id="${d.id}" cx="${x}" cy="${y}" r="4.5" tabindex="0" role="button" aria-label="${esc(d.name)}"><title>${esc(d.name)} · ${esc(CAT[d.cat])}</title></circle>`;});
+ const side=(lon)=>lon>29?['end',-10]:['start',10];
+ const label=(x,y,text,lon,dy=4)=>{const[a,dx]=side(lon);return`<text class="maplabel" x="${x+dx}" y="${y+dy}" text-anchor="${a}">${esc(text)}</text>`;};
+ p.days.slice(0,-1).forEach(d=>{const k=d.legs[d.legs.length-1].to,[x,y]=xy(k);s+=`<circle class="pin-night" cx="${x}" cy="${y}" r="6"/>`+label(x,y,N[k][0],N[k][2]);});
+ const[sx,sy]=xy(S.from);s+=`<rect class="pin-start" x="${sx-7}" y="${sy-7}" width="14" height="14" rx="3"/>`+label(sx,sy,N[S.from][0],N[S.from][2]);
+ const[ex,ey]=P(p.dest.lat,p.dest.lon);const ea=ex<60?'start':ex>470?'end':'middle', ely=ey>440?ey-15:ey+24;
+ s+=`<circle class="pin-end" cx="${ex}" cy="${ey}" r="9"/><text class="maplabel" x="${ex}" y="${ely}" text-anchor="${ea}">${esc(p.dest.name)}</text>`;
+ $('map').innerHTML=s;
+}
+function pick(id){if(!BY_ID[id])return;S.to=id;syncForm();update();}
+$('map').addEventListener('click',e=>{const id=e.target.dataset&&e.target.dataset.id;if(id)pick(id);});
+$('map').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.id)pick(e.target.dataset.id);});
+
+// ---------- Fuel monitor ----------
+function trendChart(doc){
+ const hist=(doc.history||[]).filter(h=>h&&h.inland).slice(-8);
+ if(!hist.length)return'';
+ const pts=hist.map(h=>({m:h.month,p:h.inland.p95,d:h.inland.d50,fc:false}));
+ if(doc.forecast&&doc.forecast.delta&&doc.prices&&doc.prices.inland){const fm=(doc.forecast.effective||'').slice(0,7);
+  pts.push({m:fm,p:doc.prices.inland.p95+(doc.forecast.delta.p95||0),d:doc.prices.inland.d50+(doc.forecast.delta.d50||0),fc:true});}
+ const W=340,H=150,L=34,Rt=46,T=12,B=22;
+ const vals=pts.flatMap(q=>[q.p,q.d]).filter(v=>typeof v==='number');
+ let lo=Math.floor(Math.min(...vals)-0.5),hi=Math.ceil(Math.max(...vals)+0.5);if(hi-lo<2)hi=lo+2;
+ const x=i=>pts.length===1?(L+W-Rt)/2:L+i*(W-L-Rt)/(pts.length-1), y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+ const step=Math.max(1,Math.round((hi-lo)/3));let g='';
+ for(let v=lo;v<=hi;v+=step)g+=`<line class="grid" x1="${L}" x2="${W-Rt}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`;
+ const mon=s=>{const d=new Date((s||'')+'-01T12:00:00');return isNaN(d)?esc(s):d.toLocaleDateString('en-ZA',{month:'short'});};
+ pts.forEach((q,i)=>g+=`<text class="ax" x="${x(i)}" y="${H-6}" text-anchor="middle">${mon(q.m)}${q.fc?'*':''}</text>`);
+ const line=(key,cls)=>{let s='';for(let i=1;i<pts.length;i++)s+=`<line class="${cls}${pts[i].fc?' fc':''}" x1="${x(i-1)}" y1="${y(pts[i-1][key])}" x2="${x(i)}" y2="${y(pts[i][key])}"/>`;
+  pts.forEach((q,i)=>s+=`<circle class="${cls==='lp'?'vp':'vd'}" cx="${x(i)}" cy="${y(q[key])}" r="${i===pts.length-1?4:2.5}"/>`);
+  const lq=pts[pts.length-1];return s+`<text class="vl" x="${x(pts.length-1)+7}" y="${y(lq[key])+4}">${lq[key].toFixed(2)}</text>`;};
+ return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Inland petrol 95 and diesel 50ppm price trend">${g}${line('p','lp')}${line('d','ld')}</svg>
+  <div class="legend" style="padding:0"><span><i class="key" style="background:var(--route)"></i>Petrol 95 inland</span><span><i class="key" style="background:var(--dot)"></i>Diesel 50ppm inland (wholesale)</span>${pts.some(q=>q.fc)?'<span>* expected</span>':''}</div></div>`;
+}
+function renderMonitor(){
+ const doc=FUEL.doc;
+ if(!doc){
+  $('monitorPill').innerHTML=FUEL.status==='loading'?'<span class="pill wait">Loading prices</span>':'<span class="pill wait">Not connected</span>';
+  $('monitor').innerHTML=FUEL.status==='loading'?'<p class="hint">Fetching this month’s official prices…</p>'
+   :`<p class="hint">Couldn’t load the official fuel prices right now. Enter the price at your local pump under Car &amp; fuel and the budget will use it for every kilometre.</p>`;
+  return;
+ }
+ const pr=doc.prices||{},dl=(doc.forecast&&doc.forecast.delta)||{};
+ const rows=Object.keys(GRADE).map(g=>{const i=pr.inland&&pr.inland[g],c=pr.coastal&&pr.coastal[g],d=dl[g];
+  return `<tr${g===S.grade?' style="font-weight:700"':''}><td>${GRADE[g]}${g[0]==='d'?'*':''}</td><td class="r">${typeof i==='number'?R2(i):'–'}</td><td class="r">${typeof c==='number'?R2(c):'–'}</td><td class="r ${d>0?'up':d<0?'down':''}">${typeof d==='number'?(d>0?'+':'')+d.toFixed(2):'–'}</td></tr>`;}).join('');
+ const fresh=doc.checked?Math.round((Date.now()-new Date(doc.checked+'T12:00:00'))/864e5):null;
+ $('monitorPill').innerHTML=`<span class="pill ${fresh!==null&&fresh>40?'wait':'ok'}">${fresh!==null&&fresh>40?'Out of date':'Up to date'}</span>`;
+ $('monitor').innerHTML=`<table class="btable ftable"><thead><tr><th>Grade</th><th>Inland</th><th>Coastal</th><th>Expected</th></tr></thead><tbody>${rows}</tbody></table>
+  <p class="hint">Official prices in rand per litre, effective ${fmtDate(doc.effective)}. ${doc.forecast?`Expected change from ${fmtDate(doc.forecast.effective)}${doc.forecast.status==='official'?' (announced)':' (forecast)'}. `:''}${doc.checked?`Last checked ${fmtDate(doc.checked)}.`:''} * Diesel is the wholesale price; pumps charge a little more.</p>
+  ${trendChart(doc)}
+  ${doc.source?`<p class="hint">Source: ${esc(doc.source)}</p>`:''}`;
+}
+function renderFuelControls(){
+ const live=!!FUEL.doc, m=fuelMode();
+ document.querySelectorAll('#fuelMode button').forEach(b=>{const v=b.dataset.v;b.disabled=!live&&v!=='manual'||(v==='forecast'&&live&&!(FUEL.doc.forecast&&FUEL.doc.forecast.delta));b.setAttribute('aria-pressed',v===m);});
+ $('manualWrap').hidden=m!=='manual';
+ $('fuelStat').innerHTML=m==='manual'?(live?'':`<span class="pill wait">${FUEL.status==='loading'?'Loading':'Offline'}</span><span class="hint">Using your pump price.</span>`)
+  :`<span class="pill ok">Official</span><span class="hint">${GRADE[S.grade]}: ${R2(pumpPrice('inland'))} inland, ${R2(pumpPrice('coastal'))} coastal${S.grade[0]==='d'?' (incl. pump margin)':''}</span>`;
+}
+
+// ---------- Render ----------
+function update(){
+ save();const p=plan();drawMap(p);renderFuelControls();
+ const roads=[...new Set(p.legs.filter(l=>l.road!=='Local').map(l=>l.road))];
+ $('hdrShields').innerHTML=`<span class="arrow">${esc(N[S.from][0])}</span>`+roads.map(r=>`<span class="shield">${r}</span>`).join('')+`<span class="arrow">→ ${esc(p.dest.name)}</span>`;
+ const over=p.total>S.target;
+ $('summary').innerHTML=`
+  <div><span class="label">Driving distance</span><span class="v">${kmf(p.km)} km</span><span class="s">${S.ret?'one way · '+kmf(p.km*2)+' km return':'one way'}</span></div>
+  <div><span class="label">Time behind the wheel</span><span class="v">${hrs(p.km)}</span><span class="s">${p.out} driving day${p.out===1?'':'s'}${S.ret?' each way':''}</span></div>
+  <div><span class="label">Trip length</span><span class="v">${p.tripDays} days</span><span class="s">${p.nights} night${p.nights===1?'':'s'} away</span></div>
+  <div><span class="label">Per person</span><span class="v">${R(p.total/p.t)}</span><span class="s">${p.t} traveller${p.t>1?'s':''}</span></div>
+  <div><span class="label">Estimated total</span><span class="v">${R(p.total)}</span><span class="pill ${over?'over':'ok'}">${over?R(p.total-S.target)+' over budget':R(S.target-p.total)+' under budget'}</span></div>`;
+
+ // itinerary
+ let h='',dayNo=1,cum=0;const shown=new Set([p.dest.id]);
+ if(!p.legs.length){h+=`<div class="day"><div class="daynum">Day<b>1</b></div><div class="daybody"><h3>You're already there</h3><p class="hint">${esc(p.dest.name)} is in ${esc(N[S.from][0])}. No long drive needed.</p></div></div>`;dayNo=2;}
+ p.days.forEach((d,i)=>{
+  const start=d.legs[0].from,endK=d.legs[d.legs.length-1].to,last=i===p.days.length-1;
+  const nodes=[...(i===0?[start]:[]),...d.legs.map(l=>l.to).filter(k=>k!=='@')];
+  const sights=nodes.flatMap(k=>BY_NODE[k]||[]).filter(x=>!shown.has(x.id)&&x.lastKm<=60).sort((a,b)=>a.lastKm-b.lastKm);
+  const top=sights.slice(0,4);top.forEach(x=>shown.add(x.id));
+  h+=`<div class="day"><div class="daynum">Day<b>${dayNo++}</b></div><div class="daybody">
+   <div class="daytitle"><h3>${esc(N[start][0])} → ${esc(nm(endK,p.dest))}</h3><span class="daymeta">${kmf(d.km)} km · ${hrs(d.km)}</span></div>
+   <ul class="stops">${d.legs.map(l=>{cum+=l.km;return`<li><span class="shield">${l.road==='Local'?'↳':l.road}</span><span>${esc(nm(l.to,p.dest))}${l.toll?` <span class="km">· toll ≈ ${R(l.toll)}</span>`:''}</span><span class="km">${kmf(cum)} km</span></li>`;}).join('')}</ul>
+   ${top.length?`<div class="chips"><span class="label">Worth a stop</span>${top.map(x=>`<button type="button" class="chip see" data-id="${x.id}" title="Make this the destination">${esc(x.name)}${x.lastKm?` · +${x.lastKm*2} km`:''}</button>`).join('')}${sights.length>4?`<span class="hint">+${sights.length-4} more nearby</span>`:''}</div>`:''}
+   ${last?`<div class="chips"><span class="chip sleep">Arrive: ${esc(p.dest.name)}</span></div>`:`<div class="chips"><span class="chip sleep">Sleep in ${esc(N[endK][0])}</span></div>${stayLinks(N[endK][0],p.t)}`}
+  </div></div>`;
+ });
+ if(S.nights>0){const full=S.nights-1,a=dayNo,b=dayNo+full-1;
+  const tag=full>=1?(a===b?a:a+'–'+b):Math.max(1,dayNo-1);if(full>=1)dayNo=b+1;
+  const near=(BY_NODE[p.dest.node]||[]).filter(x=>!shown.has(x.id)).slice(0,5);
+  const town=N[p.dest.node][0];
+  h+=`<div class="day stay"><div class="daynum">Day<b>${tag}</b></div><div class="daybody">
+   <div class="daytitle"><h3>${esc(p.dest.name)}</h3><span class="daymeta">${S.nights} night${S.nights>1?'s':''} · best ${esc(p.dest.best)}</span></div>
+   <p class="hint" style="color:var(--ink)">${esc(p.dest.blurb)}</p>
+   <div class="chips"><span class="chip see">${esc(p.dest.actLbl)}</span>${p.dest.park?`<span class="chip">Park fee ${R(p.dest.park[S.resident?0:1])}/person/day</span>`:''}${p.dest.stay?`<span class="chip sleep">Staying at the resort · ${R(p.dest.stay.rate)}/room/night${p.dest.stay.meals?', meals included':''}</span>`:''}</div>
+   ${near.length?`<div class="chips"><span class="label">Also near ${esc(town)}</span>${near.map(x=>`<button type="button" class="chip see" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>`:''}
+   ${p.dest.stay?'':stayLinks(town,p.t)}
+  </div></div>`;}
+ if(S.ret&&p.out){const a=dayNo,b=a+p.out-1;
+  const stops=p.days.slice(0,-1).reverse().map(d=>esc(N[d.legs[d.legs.length-1].to][0]));
+  h+=`<div class="day"><div class="daynum">Day<b>${a===b?a:a+'–'+b}</b></div><div class="daybody">
+   <div class="daytitle"><h3>Drive home to ${esc(N[S.from][0])}</h3><span class="daymeta">${kmf(p.km)} km · ${hrs(p.km)}</span></div>
+   <p class="hint">Same route in reverse${stops.length?', sleeping in '+(stops.length>1?stops.slice(0,-1).join(', ')+' and '+stops[stops.length-1]:stops[0]):''}.</p></div></div>`;}
+ $('days').innerHTML=h;
+ $('routeNote').textContent=p.legs.length?`Max ${S.maxkm} km a day`:'';
+
+ // budget
+ $('budget').innerHTML=`<div class="stack" role="img" aria-label="Budget split">${p.lines.map(l=>`<i style="width:${(l.v/(p.total||1)*100).toFixed(2)}%;background:${l.c}" title="${esc(l.k)}"></i>`).join('')}</div>
+  <table class="btable"><tbody>${p.lines.map(l=>`<tr><td><span class="key" style="background:${l.c}"></span>${esc(l.k)}<span class="why">${esc(l.why)}</span></td><td class="r">${R(l.v)}</td></tr>`).join('')}
+  <tr class="total"><td>Total for ${p.t} traveller${p.t>1?'s':''}</td><td class="r">${R(p.total)}</td></tr></tbody></table>
+  <p class="hint">${over?`To get under ${R(S.target)}, try an Airbnb or camping, fewer nights, or a closer destination.`:`You have about ${R(S.target-p.total)} spare for extra activities or a splurge night.`}</p>`;
+ $('budgetNote').textContent=p.dest.stay?p.dest.name:ACC[S.acc].lbl;
+ $('accHint').textContent=p.dest.stay?`On the road you'll use this. At ${p.dest.name} the resort's own rate applies.`:'Used for overnight stops and at your destination.';
+
+ renderMonitor();renderPlaces();
+}
+$('days').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(b)pick(b.dataset.id);});
+
+function renderPlaces(){
+ const counts={all:D.length};D.forEach(d=>counts[d.cat]=(counts[d.cat]||0)+1);
+ $('filters').innerHTML=[['all','All'],...Object.entries(CAT)].map(([k,v])=>`<button type="button" data-c="${k}" aria-pressed="${S.cat===k}">${v} <span class="km">${counts[k]||0}</span></button>`).join('');
+ const {dist}=paths(S.from);
+ const list=visiblePlaces().map(d=>({d,km:(S.from===d.node?0:dist[d.node])+d.lastKm})).sort((a,b)=>a.km-b.km);
+ const cap=showAll?list.length:24;
+ $('placeCount').textContent=`${list.length} place${list.length===1?'':'s'} · nearest first`;
+ $('places').innerHTML=list.length?list.slice(0,cap).map(({d,km})=>`<article class="place${d.id===S.to?' sel':''}">
+  <span class="label">${esc(CAT[d.cat])} · ${esc(d.region)}</span><h3>${esc(d.name)}</h3><p>${esc(d.blurb)}</p>
+  <div class="meta"><span class="num">${kmf(km)} km from ${esc(N[S.from][0])}</span><span>Best ${esc(d.best)}</span></div>
+  <div class="meta"><span>${d.stay?`From ${R(d.stay.rate)}/room/night`:d.act?`${esc(d.actLbl)} ≈ ${R(d.act)}`:esc(d.actLbl)}</span>${d.park?`<span>Park ${R(d.park[S.resident?0:1])}/day</span>`:''}</div>
+  <button type="button" class="btn" data-id="${d.id}">${d.id===S.to?'Your destination':'Plan trip here'}</button></article>`).join('')
+  :'<p class="hint">No places match. Clear the search or pick another category.</p>';
+ $('moreBtn').hidden=list.length<=cap;$('moreBtn').textContent=`Show all ${list.length} places`;
+}
+$('filters').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.cat=b.dataset.c;showAll=false;save();renderPlaces();drawMap(plan());});
+$('places').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(!b)return;pick(b.dataset.id);document.querySelector('.planner').scrollIntoView({behavior:'smooth'});});
+$('moreBtn').addEventListener('click',()=>{showAll=true;renderPlaces();});
+
+// ---------- Fuel prices (from fuel.json, updated monthly) ----------
+(async()=>{
+ try{
+  const r=await fetch('fuel.json',{cache:'no-cache'});
+  if(!r.ok)throw 0;
+  FUEL.doc=await r.json();FUEL.status='live';
+ }catch(e){FUEL.doc=null;FUEL.status='offline';}
+ update();
+})();
+
+// ---------- Share, print, reset ----------
+const SHARE_KEYS=['from','to','travellers','nights','acc','food','target','ret','resident','vehicle','grade','fuelMode','manualPrice','cons','maxkm'];
+(function readHash(){
+ if(!location.hash.slice(1))return;
+ try{const h=new URLSearchParams(location.hash.slice(1));
+  SHARE_KEYS.forEach(k=>{if(!h.has(k))return;const v=h.get(k),d=DEF[k];
+   S[k]=typeof d==='number'?(isFinite(+v)?+v:d):typeof d==='boolean'?v==='1':v;});
+  if(!N[S.from])S.from=DEF.from;if(!BY_ID[S.to])S.to=DEF.to;if(!ACC[S.acc])S.acc=DEF.acc;if(!FOOD[S.food])S.food=DEF.food;
+  history.replaceState(null,'',location.pathname+location.search);
+ }catch(e){}
+})();
+function toast(msg){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t);}
+ t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2200);}
+$('shareBtn').addEventListener('click',async()=>{
+ const h=new URLSearchParams();SHARE_KEYS.forEach(k=>h.set(k,typeof S[k]==='boolean'?(S[k]?'1':'0'):S[k]));
+ const url=location.href.split('#')[0]+'#'+h.toString();
+ const text=`Road trip: ${N[S.from][0]} to ${BY_ID[S.to].name}`;
+ try{if(navigator.share){await navigator.share({title:'Padkos Road Trip Planner',text,url});return;}
+  await navigator.clipboard.writeText(url);toast('Link copied');}catch(e){if(e&&e.name!=='AbortError')prompt('Copy this link:',url);}
+});
+$('printBtn').addEventListener('click',()=>window.print());
+$('resetBtn').addEventListener('click',()=>{if(!confirm('Clear your choices and start over?'))return;S={...DEF};showAll=false;syncForm();update();toast('Reset to defaults');});
+
+syncForm();update();
+</script>
+</body>
+</html>
